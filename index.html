@@ -191,12 +191,12 @@
   <p class="page-sub">Paste any inbound RFP below. The grader evaluates it against Thynk's full rubric — 6 killer criteria and 16 scored criteria across 5 categories — and returns an instant decision with a full breakdown.</p>
 
   <div class="input-card" id="api-key-section">
-    <div class="input-label">Anthropic API key</div>
+    <div class="input-label">Google API key</div>
     <div style="display:flex;gap:8px;align-items:center;">
-      <input type="password" id="api-key" placeholder="sk-ant-..." oninput="saveKey()" style="flex:1;height:38px;font-size:13px;padding:0 12px;border-radius:8px;border:1px solid var(--gray-100);background:var(--gray-50);color:var(--text);font-family:'DM Sans',sans-serif;"/>
+      <input type="password" id="api-key" placeholder="AIza..." oninput="saveKey()" style="flex:1;height:38px;font-size:13px;padding:0 12px;border-radius:8px;border:1px solid var(--gray-100);background:var(--gray-50);color:var(--text);font-family:'DM Sans',sans-serif;"/>
       <span id="key-status" style="font-size:12px;color:var(--text-muted);white-space:nowrap;"></span>
     </div>
-    <p style="font-size:11px;color:var(--text-muted);margin-top:8px;line-height:1.6;">Your key is stored only in your browser's local storage and never sent anywhere except directly to Anthropic. Get one at <a href="https://console.anthropic.com" target="_blank" style="color:var(--mid-blue);">console.anthropic.com</a>.</p>
+    <p style="font-size:11px;color:var(--text-muted);margin-top:8px;line-height:1.6;">Your key is stored only in your browser's local storage and never sent anywhere except directly to Google. Get a free key (no credit card) at <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--mid-blue);">aistudio.google.com</a>.</p>
   </div>
 
   <div class="input-card" id="input-section">
@@ -261,17 +261,17 @@ Return this exact JSON structure (no extra fields, no markdown):
 function saveKey() {
   const key = document.getElementById('api-key').value.trim();
   if (key) {
-    localStorage.setItem('thynk_api_key', key);
+    localStorage.setItem('thynk_gemini_key', key);
     document.getElementById('key-status').textContent = 'Saved';
     document.getElementById('key-status').style.color = '#1A7A4A';
   } else {
-    localStorage.removeItem('thynk_api_key');
+    localStorage.removeItem('thynk_gemini_key');
     document.getElementById('key-status').textContent = '';
   }
 }
 
 function loadKey() {
-  const saved = localStorage.getItem('thynk_api_key');
+  const saved = localStorage.getItem('thynk_gemini_key');
   if (saved) {
     document.getElementById('api-key').value = saved;
     document.getElementById('key-status').textContent = 'Saved';
@@ -285,9 +285,9 @@ function updateCharCount() {
 }
 
 async function gradeRFP() {
-  const apiKey = (document.getElementById('api-key').value.trim()) || localStorage.getItem('thynk_api_key');
-  if (!apiKey || !apiKey.startsWith('sk-ant-')) {
-    alert('Please enter a valid Anthropic API key (starts with sk-ant-) at the top of the page.');
+  const apiKey = (document.getElementById('api-key').value.trim()) || localStorage.getItem('thynk_gemini_key');
+  if (!apiKey || !apiKey.startsWith('AIza')) {
+    alert('Please enter a valid Google API key (starts with AIza) at the top of the page.');
     document.getElementById('api-key').focus();
     return;
   }
@@ -298,17 +298,16 @@ async function gradeRFP() {
   document.getElementById('loading-card').style.display = 'block';
   document.getElementById('results').style.display = 'none';
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        messages: [{ role: 'user', content: PROMPT + '\n\n--- RFP ---\n' + text.substring(0, 12000) }]
+        contents: [{ parts: [{ text: PROMPT + '\n\n--- RFP ---\n' + text.substring(0, 12000) }] }],
+        generationConfig: { maxOutputTokens: 1500, temperature: 0.1 }
       })
     });
     const data = await res.json();
-    const raw = data.content.filter(b => b.type === 'text').map(b => b.text).join('');
+    const raw = data.candidates[0].content.parts[0].text;
     const result = JSON.parse(raw.replace(/```json|```/g, '').trim());
     renderResults(result);
   } catch(e) {
