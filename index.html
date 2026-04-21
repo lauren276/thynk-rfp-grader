@@ -190,6 +190,15 @@
   <h1 class="page-title">RFP Go / No-Go Grader</h1>
   <p class="page-sub">Paste any inbound RFP below. The grader evaluates it against Thynk's full rubric — 6 killer criteria and 16 scored criteria across 5 categories — and returns an instant decision with a full breakdown.</p>
 
+  <div class="input-card" id="api-key-section">
+    <div class="input-label">Anthropic API key</div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <input type="password" id="api-key" placeholder="sk-ant-..." oninput="saveKey()" style="flex:1;height:38px;font-size:13px;padding:0 12px;border-radius:8px;border:1px solid var(--gray-100);background:var(--gray-50);color:var(--text);font-family:'DM Sans',sans-serif;"/>
+      <span id="key-status" style="font-size:12px;color:var(--text-muted);white-space:nowrap;"></span>
+    </div>
+    <p style="font-size:11px;color:var(--text-muted);margin-top:8px;line-height:1.6;">Your key is stored only in your browser's local storage and never sent anywhere except directly to Anthropic. Get one at <a href="https://console.anthropic.com" target="_blank" style="color:var(--mid-blue);">console.anthropic.com</a>.</p>
+  </div>
+
   <div class="input-card" id="input-section">
     <div class="input-label">RFP text</div>
     <textarea id="rfp-text" placeholder="Paste the full RFP here — scope, requirements, grade levels, funding source, evaluation criteria, timeline...&#10;&#10;The more detail you include, the more accurate the score." oninput="updateCharCount()"></textarea>
@@ -229,12 +238,12 @@ K6: No legal/conflict-of-interest barrier
 SCORED CRITERIA (score 0-3, multiply by weight):
 A1: Scope type match (weight 3) — enrichment/supplemental vs scripted curriculum
 A2: Framework flexibility (weight 2) — open to tech vs locked into CASEL/specific framework
-A3: Grade span alignment (weight 3) — K-6/K-8=3, K-12 partial=2, HS only=0
+A3: Grade span alignment (weight 3) — includes any K-8 grades=3, K-12 (includes elementary)=3, middle school only=2, HS/9-12 only=0
 A4: Delivery model (weight 2) — supplemental/after-school vs core instructional replacement
-B1: Target population (weight 3) — ADHD/attention/cognitive=3, general K-8=2
+B1: Target population (weight 3) — any RFP serving K-8 students (any size district, any number of schools) scores 3. ADHD/attention/cognitive explicitly mentioned=bonus context but still 3. HS/9-12 only=0. Do NOT penalize for large student counts or many schools — scale is not a disqualifier for population fit.
 B2: Issuer type (weight 2) — K-12 district/charter/pediatric health=3
 B3: Geographic value (weight 1) — strategic market=2-3, no value=0-1
-C1: Funding certainty (weight 3) — named source like ELO-P/Title IV/ESSER=3, vague=1, none=0
+C1: Funding certainty (weight 3) — confirmed or likely funded program=3, no funding information at all=1, explicitly unfunded/exploratory=0
 C2: Contract value (weight 3) — scale and recurring potential
 C3: Pricing model fit (weight 2) — per-student/SaaS/licensing=3, all-inclusive bundle with staffing=0-1
 D1: Incumbent risk (weight 3) — no incumbent=3, named incumbent=0-1
@@ -249,21 +258,49 @@ DECISION: 75-100%=GO, 50-74%=CONDITIONAL, under 50%=NO_GO, any killer FAIL=AUTO_
 Return this exact JSON structure (no extra fields, no markdown):
 {"rfp_name":"short issuer + type name","killer_criteria":[{"id":"K1","label":"Scope type","result":"PASS","note":"brief reason"},{"id":"K2","label":"Target population","result":"PASS","note":"brief reason"},{"id":"K3","label":"Deadline","result":"PASS","note":"brief reason"},{"id":"K4","label":"Funding confirmed","result":"PASS","note":"brief reason"},{"id":"K5","label":"Product fit","result":"PASS","note":"brief reason"},{"id":"K6","label":"No legal barrier","result":"PASS","note":"brief reason"}],"scored_criteria":[{"id":"A1","label":"Scope type match","weight":3,"score":2,"note":"brief reason"},{"id":"A2","label":"Framework flexibility","weight":2,"score":2,"note":"brief reason"},{"id":"A3","label":"Grade span","weight":3,"score":3,"note":"brief reason"},{"id":"A4","label":"Delivery model","weight":2,"score":2,"note":"brief reason"},{"id":"B1","label":"Target population","weight":3,"score":2,"note":"brief reason"},{"id":"B2","label":"Issuer type","weight":2,"score":3,"note":"brief reason"},{"id":"B3","label":"Geographic value","weight":1,"score":2,"note":"brief reason"},{"id":"C1","label":"Funding certainty","weight":3,"score":2,"note":"brief reason"},{"id":"C2","label":"Contract value","weight":3,"score":2,"note":"brief reason"},{"id":"C3","label":"Pricing model fit","weight":2,"score":2,"note":"brief reason"},{"id":"D1","label":"Incumbent risk","weight":3,"score":2,"note":"brief reason"},{"id":"D2","label":"Thynk differentiation","weight":2,"score":2,"note":"brief reason"},{"id":"E1","label":"Team bandwidth","weight":3,"score":2,"note":"brief reason"},{"id":"E2","label":"Compliance readiness","weight":3,"score":2,"note":"brief reason"},{"id":"E3","label":"Implementation scope","weight":2,"score":2,"note":"brief reason"},{"id":"E4","label":"Timeline realism","weight":2,"score":2,"note":"brief reason"}],"total_weighted_score":86,"max_score":108,"percentage":80,"decision":"GO","rationale":"2-3 sentence summary citing specific RFP details"}`;
 
+function saveKey() {
+  const key = document.getElementById('api-key').value.trim();
+  if (key) {
+    localStorage.setItem('thynk_api_key', key);
+    document.getElementById('key-status').textContent = 'Saved';
+    document.getElementById('key-status').style.color = '#1A7A4A';
+  } else {
+    localStorage.removeItem('thynk_api_key');
+    document.getElementById('key-status').textContent = '';
+  }
+}
+
+function loadKey() {
+  const saved = localStorage.getItem('thynk_api_key');
+  if (saved) {
+    document.getElementById('api-key').value = saved;
+    document.getElementById('key-status').textContent = 'Saved';
+    document.getElementById('key-status').style.color = '#1A7A4A';
+  }
+}
+
 function updateCharCount() {
   const n = document.getElementById('rfp-text').value.length;
   document.getElementById('char-count').textContent = n.toLocaleString() + ' chars';
 }
 
 async function gradeRFP() {
+  const apiKey = (document.getElementById('api-key').value.trim()) || localStorage.getItem('thynk_api_key');
+  if (!apiKey || !apiKey.startsWith('sk-ant-')) {
+    alert('Please enter a valid Anthropic API key (starts with sk-ant-) at the top of the page.');
+    document.getElementById('api-key').focus();
+    return;
+  }
   const text = document.getElementById('rfp-text').value.trim();
   if (text.length < 50) { alert('Please paste some RFP text first.'); return; }
   document.getElementById('input-section').style.display = 'none';
+  document.getElementById('api-key-section').style.display = 'none';
   document.getElementById('loading-card').style.display = 'block';
   document.getElementById('results').style.display = 'none';
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 1000,
@@ -276,8 +313,9 @@ async function gradeRFP() {
     renderResults(result);
   } catch(e) {
     document.getElementById('loading-card').style.display = 'none';
+    document.getElementById('api-key-section').style.display = 'block';
     document.getElementById('input-section').style.display = 'block';
-    alert('Something went wrong. Please try again.');
+    alert('Something went wrong. Please check your API key and try again.');
   }
 }
 
@@ -380,6 +418,7 @@ function toggleSection(bodyId, chevId) {
 function resetToInput() {
   document.getElementById('results').style.display = 'none';
   document.getElementById('results').innerHTML = '';
+  document.getElementById('api-key-section').style.display = 'block';
   document.getElementById('input-section').style.display = 'block';
   window.scrollTo(0, 0);
 }
@@ -388,6 +427,8 @@ function clearAll() {
   document.getElementById('rfp-text').value = '';
   updateCharCount();
 }
+
+loadKey();
 </script>
 </body>
 </html>
