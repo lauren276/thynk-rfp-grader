@@ -1,1 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Thynk RFP Grader</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #1A3A5F;
+    --blue: #00518B;
+    --mid-blue: #0E64AD;
+    --sky: #42A0D8;
+    --cyan: #52C1EE;
+    --white: #ffffff;
+    --gray-50: #F4F7FB;
+    --gray-100: #E8EFF7;
+    --gray-200: #C8D8E8;
+    --gray-400: #7A9BBF;
+    --text: #0F2340;
+    --text-muted: #4A6A8A;
+    --green: #1A7A4A;
+    --green-bg: #D6F0E2;
+    --amber: #C07800;
+    --amber-bg: #FFF4D6;
+    --red: #B03030;
+    --red-bg: #FCE4E4;
+    --red-deep: #F5C8C8;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--gray-50); color: var(--text); min-height: 100vh; }
+  .header {
+    background: var(--navy); padding: 0 2rem; display: flex; align-items: center;
+    justify-content: space-between; height: 56px; position: sticky; top: 0; z-index: 100;
+    border-bottom: 1px solid rgba(82,193,238,0.15);
+  }
+  .header-left { display: flex; align-items: center; gap: 14px; }
+  .logo-mark {
+    width: 28px; height: 28px; background: var(--cyan); border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .logo-mark svg { width: 14px; height: 14px; fill: var(--navy); }
+  .logo-text { font-size: 15px; font-weight: 600; color: var(--white); letter-spacing: 0.06em; }
+  .logo-divider { width: 1px; height: 18px; background: rgba(255,255,255,0.2); }
+  .header-subtitle { font-size: 12px; color: var(--cyan); font-weight: 400; }
+  .header-badge { font-size: 11px; color: var(--gray-400); font-family: 'DM Mono', monospace; }
+  .main { max-width: 720px; margin: 0 auto; padding: 2.5rem 1.5rem 4rem; }
+  .page-title { font-size: 26px; font-weight: 600; color: var(--navy); margin-bottom: 6px; }
+  .page-sub { font-size: 14px; color: var(--text-muted); line-height: 1.6; margin-bottom: 2rem; }
+  .input-card {
+    background: var(--white); border: 1px solid var(--gray-100);
+    border-radius: 14px; padding: 1.5rem; margin-bottom: 1.5rem;
+  }
+  .input-label {
+    font-size: 12px; font-weight: 500; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px;
+  }
+  textarea {
+    width: 100%; min-height: 220px; font-size: 13px; line-height: 1.7;
+    padding: 14px; border-radius: 10px; border: 1px solid var(--gray-100);
+    background: var(--gray-50); color: var(--text); resize: vertical;
+    font-family: 'DM Sans', sans-serif; transition: border-color 0.15s;
+  }
+  textarea:focus { outline: none; border-color: var(--sky); background: var(--white); }
+  textarea::placeholder { color: var(--gray-400); }
+  .btn-row { display: flex; gap: 10px; margin-top: 14px; align-items: center; }
+  .btn-primary {
+    background: var(--blue); color: var(--white); border: none; border-radius: 8px;
+    padding: 10px 20px; font-size: 14px; font-weight: 500; font-family: 'DM Sans', sans-serif;
+    cursor: pointer; transition: background 0.15s, transform 0.1s;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .btn-primary:hover { background: var(--mid-blue); }
+  .btn-primary:active { transform: scale(0.98); }
+  .btn-ghost {
+    background: transparent; color: var(--text-muted); border: 1px solid var(--gray-100);
+    border-radius: 8px; padding: 10px 16px; font-size: 13px;
+    font-family: 'DM Sans', sans-serif; cursor: pointer; transition: background 0.12s;
+  }
+  .btn-ghost:hover { background: var(--gray-50); color: var(--text); }
+  .char-count { margin-left: auto; font-size: 12px; color: var(--gray-400); font-family: 'DM Mono', monospace; }
+  .loading-card {
+    display: none; background: var(--white); border: 1px solid var(--gray-100);
+    border-radius: 14px; padding: 2.5rem; text-align: center;
+  }
+  .loading-spinner {
+    width: 36px; height: 36px; border: 3px solid var(--gray-100);
+    border-top-color: var(--blue); border-radius: 50%;
+    animation: spin 0.8s linear infinite; margin: 0 auto 16px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { font-size: 14px; color: var(--text); font-weight: 500; margin-bottom: 6px; }
+  .loading-sub { font-size: 12px; color: var(--text-muted); }
+  .progress-bar { height: 3px; background: var(--gray-100); border-radius: 99px; overflow: hidden; margin: 16px 0 0; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--blue), var(--cyan)); border-radius: 99px; animation: prog 2s ease-in-out infinite; }
+  @keyframes prog { 0%{width:8%} 60%{width:85%} 100%{width:95%} }
+  .results { display: none; }
+  .verdict-banner { border-radius: 14px; padding: 1.5rem; margin-bottom: 1.25rem; border: 1px solid transparent; }
+  .verdict-go { background: var(--green-bg); border-color: #1A7A4A; }
+  .verdict-conditional { background: var(--amber-bg); border-color: #C07800; }
+  .verdict-nogo { background: var(--red-bg); border-color: #B03030; }
+  .verdict-autongo { background: var(--red-deep); border-color: #B03030; }
+  .verdict-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 10px; }
+  .verdict-decision { font-size: 22px; font-weight: 600; }
+  .verdict-go .verdict-decision { color: #0F5733; }
+  .verdict-conditional .verdict-decision { color: #7A4A00; }
+  .verdict-nogo .verdict-decision, .verdict-autongo .verdict-decision { color: #7A1A1A; }
+  .verdict-pct { font-family: 'DM Mono', monospace; font-size: 28px; font-weight: 500; line-height: 1; }
+  .verdict-go .verdict-pct { color: var(--green); }
+  .verdict-conditional .verdict-pct { color: var(--amber); }
+  .verdict-nogo .verdict-pct, .verdict-autongo .verdict-pct { color: var(--red); }
+  .verdict-pct span { font-size: 14px; font-weight: 400; }
+  .verdict-rfp { font-size: 12px; font-weight: 500; margin-bottom: 4px; opacity: 0.65; }
+  .verdict-rationale { font-size: 13px; line-height: 1.7; color: var(--text); }
+  .section-header {
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.1em; color: var(--text-muted); margin: 1.5rem 0 10px;
+    display: block;
+  }
+  .cat-bars { background: var(--white); border: 1px solid var(--gray-100); border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 1rem; }
+  .bar-row { display: flex; align-items: center; gap: 10px; padding: 5px 0; }
+  .bar-label { font-size: 12px; color: var(--text-muted); width: 168px; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bar-track { flex: 1; height: 6px; background: var(--gray-100); border-radius: 99px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 99px; transition: width 0.6s cubic-bezier(0.4,0,0.2,1); }
+  .bar-val { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--text-muted); width: 42px; text-align: right; flex-shrink: 0; }
+  .criteria-list { display: flex; flex-direction: column; gap: 5px; }
+  .criterion-row {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 10px 12px; border-radius: 8px;
+    border: 1px solid var(--gray-100); background: var(--white);
+  }
+  .criterion-badge {
+    flex-shrink: 0; width: 38px; height: 22px; border-radius: 5px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 600; font-family: 'DM Mono', monospace;
+  }
+  .badge-pass { background: var(--green-bg); color: #0F5733; }
+  .badge-fail { background: var(--red-bg); color: #7A1A1A; }
+  .badge-0 { background: var(--red-bg); color: #7A1A1A; }
+  .badge-1 { background: var(--amber-bg); color: #7A4A00; }
+  .badge-2 { background: #EBF5FC; color: #0C447C; }
+  .badge-3 { background: var(--green-bg); color: #0F5733; }
+  .criterion-content { flex: 1; min-width: 0; }
+  .criterion-name { font-size: 12px; font-weight: 500; color: var(--text); }
+  .criterion-weight { font-size: 11px; color: var(--gray-400); font-family: 'DM Mono', monospace; }
+  .criterion-note { font-size: 11px; color: var(--text-muted); margin-top: 2px; line-height: 1.5; }
+  .killer-fail-alert {
+    background: var(--red-bg); border: 1px solid var(--red); border-radius: 10px;
+    padding: 12px 16px; font-size: 13px; color: #7A1A1A; margin-bottom: 1rem; font-weight: 500;
+  }
+  .collapsible-btn {
+    width: 100%; text-align: left; background: none; border: none;
+    padding: 0; cursor: pointer; font-family: 'DM Sans', sans-serif;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .chevron { font-size: 12px; color: var(--gray-400); transition: transform 0.2s; }
+  .chevron.open { transform: rotate(180deg); }
+  .collapsible-body { overflow: hidden; transition: max-height 0.3s ease; }
+  .divider { height: 1px; background: var(--gray-100); margin: 1rem 0; }
+  .actions { display: flex; gap: 10px; margin-top: 1.5rem; flex-wrap: wrap; }
+  .btn-action {
+    background: var(--navy); color: var(--white); border: none; border-radius: 8px;
+    padding: 10px 18px; font-size: 13px; font-weight: 500;
+    font-family: 'DM Sans', sans-serif; cursor: pointer; transition: background 0.15s;
+  }
+  .btn-action:hover { background: var(--mid-blue); }
+  @media (max-width: 520px) {
+    .main { padding: 1.5rem 1rem 3rem; }
+    .page-title { font-size: 20px; }
+    .bar-label { width: 120px; }
+    .verdict-pct { font-size: 22px; }
+  }
+</style>
+</head>
+<body>
 
+<div class="header">
+  <div class="header-left">
+    <div class="logo-mark">
+      <svg viewBox="0 0 14 14"><polygon points="3,1 11,7 3,13"/></svg>
+    </div>
+    <span class="logo-text">THYNK</span>
+    <div class="logo-divider"></div>
+    <span class="header-subtitle">RFP Grader</span>
+  </div>
+  <span class="header-badge">Internal use only</span>
+</div>
+
+<div class="main">
+  <h1 class="page-title">RFP Go / No-Go Grader</h1>
+  <p class="page-sub">Paste any inbound RFP below. The grader evaluates it against Thynk's full rubric — 6 killer criteria and 16 scored criteria across 5 categories — and returns an instant decision with a full breakdown.</p>
+
+  <div class="input-card" id="api-key-section">
+    <div class="input-label">Anthropic API key</div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <input type="password" id="api-key" placeholder="sk-ant-..." oninput="saveKey()" style="flex:1;height:38px;font-size:13px;padding:0 12px;border-radius:8px;border:1px solid var(--gray-100);background:var(--gray-50);color:var(--text);font-family:'DM Sans',sans-serif;"/>
+      <span id="key-status" style="font-size:12px;color:var(--text-muted);white-space:nowrap;"></span>
+    </div>
+    <p style="font-size:11px;color:var(--text-muted);margin-top:8px;line-height:1.6;">Your key is stored only in your browser's local storage and never sent anywhere except directly to Anthropic. Get one at <a href="https://console.anthropic.com" target="_blank" style="color:var(--mid-blue);">console.anthropic.com</a>.</p>
+  </div>
+
+  <div class="input-card" id="input-section">
+    <div class="input-label">RFP text</div>
+    <textarea id="rfp-text" placeholder="Paste the full RFP here — scope, requirements, grade levels, funding source, evaluation criteria, timeline...&#10;&#10;The more detail you include, the more accurate the score." oninput="updateCharCount()"></textarea>
+    <div class="btn-row">
+      <button class="btn-primary" onclick="gradeRFP()">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1L13 7L7 13M1 7H13" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Grade this RFP
+      </button>
+      <button class="btn-ghost" onclick="clearAll()">Clear</button>
+      <span class="char-count" id="char-count">0 chars</span>
+    </div>
+  </div>
+
+  <div class="loading-card" id="loading-card">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">Analyzing RFP...</div>
+    <div class="loading-sub">Checking killer criteria and scoring 16 criteria across 5 categories</div>
+    <div class="progress-bar"><div class="progress-fill"></div></div>
+  </div>
+
+  <div class="results" id="results"></div>
+</div>
+
+<script>
+const PROMPT = `You are Thynk's RFP evaluation system. Thynk makes Skylar's Run — a brainwave-powered cognitive engagement platform (neurofeedback video game) targeting children ages 6-18 with ADHD and attention challenges. Thynk's product is a SUPPLEMENTAL ENRICHMENT TECHNOLOGY TOOL, not a scripted SEL curriculum.
+
+Evaluate the RFP below using Thynk's Go/No-Go rubric. Return ONLY valid JSON — no markdown, no code fences, no explanation.
+
+KILLER CRITERIA (any FAIL = auto no-go):
+K1: RFP is for enrichment, supplemental learning, or cognitive/wellness programming — NOT a scripted core curriculum replacement
+K2: Target population includes K-8 children (overlaps with Thynk's age range)
+K3: Submission deadline allows at least 5 business days prep (if no deadline mentioned, PASS)
+K4: Funding is confirmed or highly probable (named grant, budget line, state funding formula)
+K5: Skylar's Run can fulfill scope without building a new product
+K6: No legal/conflict-of-interest barrier
+
+SCORED CRITERIA (score 0-3, multiply by weight):
+A1: Scope type match (weight 3) — enrichment/supplemental vs scripted curriculum
+A2: Framework flexibility (weight 2) — open to tech vs locked into CASEL/specific framework
+A3: Grade span alignment (weight 3) — includes any K-8 grades=3, K-12 (includes elementary)=3, middle school only=2, HS/9-12 only=0
+A4: Delivery model (weight 2) — supplemental/after-school vs core instructional replacement
+B1: Target population (weight 3) — any RFP serving K-8 students (any size district, any number of schools) scores 3. ADHD/attention/cognitive explicitly mentioned=bonus context but still 3. HS/9-12 only=0. Do NOT penalize for large student counts or many schools — scale is not a disqualifier for population fit.
+B2: Issuer type (weight 2) — K-12 district/charter/pediatric health=3
+B3: Geographic value (weight 1) — strategic market=2-3, no value=0-1
+C1: Funding certainty (weight 3) — confirmed or likely funded program=3, no funding information at all=1, explicitly unfunded/exploratory=0
+C2: Contract value (weight 3) — scale and recurring potential
+C3: Pricing model fit (weight 2) — per-student/SaaS/licensing=3, all-inclusive bundle with staffing=0-1
+D1: Incumbent risk (weight 3) — no incumbent=3, named incumbent=0-1
+D2: Thynk differentiation (weight 2) — clinical validation/brainwave/ADHD outcomes differentiates=3
+E1: Team bandwidth (weight 3) — assume moderate capacity unless scope is extreme
+E2: Compliance readiness (weight 3) — standard FERPA/COPPA=3, unusual requirements=1-2
+E3: Implementation scope (weight 2) — 1-10 schools supplemental=3, staffing agency role=0
+E4: Timeline realism (weight 2) — 4+ weeks to go-live=3, under 2 weeks=0
+
+DECISION: 75-100%=GO, 50-74%=CONDITIONAL, under 50%=NO_GO, any killer FAIL=AUTO_NO_GO
+
+Return this exact JSON structure (no extra fields, no markdown):
+{"rfp_name":"short issuer + type name","killer_criteria":[{"id":"K1","label":"Scope type","result":"PASS","note":"brief reason"},{"id":"K2","label":"Target population","result":"PASS","note":"brief reason"},{"id":"K3","label":"Deadline","result":"PASS","note":"brief reason"},{"id":"K4","label":"Funding confirmed","result":"PASS","note":"brief reason"},{"id":"K5","label":"Product fit","result":"PASS","note":"brief reason"},{"id":"K6","label":"No legal barrier","result":"PASS","note":"brief reason"}],"scored_criteria":[{"id":"A1","label":"Scope type match","weight":3,"score":2,"note":"brief reason"},{"id":"A2","label":"Framework flexibility","weight":2,"score":2,"note":"brief reason"},{"id":"A3","label":"Grade span","weight":3,"score":3,"note":"brief reason"},{"id":"A4","label":"Delivery model","weight":2,"score":2,"note":"brief reason"},{"id":"B1","label":"Target population","weight":3,"score":2,"note":"brief reason"},{"id":"B2","label":"Issuer type","weight":2,"score":3,"note":"brief reason"},{"id":"B3","label":"Geographic value","weight":1,"score":2,"note":"brief reason"},{"id":"C1","label":"Funding certainty","weight":3,"score":2,"note":"brief reason"},{"id":"C2","label":"Contract value","weight":3,"score":2,"note":"brief reason"},{"id":"C3","label":"Pricing model fit","weight":2,"score":2,"note":"brief reason"},{"id":"D1","label":"Incumbent risk","weight":3,"score":2,"note":"brief reason"},{"id":"D2","label":"Thynk differentiation","weight":2,"score":2,"note":"brief reason"},{"id":"E1","label":"Team bandwidth","weight":3,"score":2,"note":"brief reason"},{"id":"E2","label":"Compliance readiness","weight":3,"score":2,"note":"brief reason"},{"id":"E3","label":"Implementation scope","weight":2,"score":2,"note":"brief reason"},{"id":"E4","label":"Timeline realism","weight":2,"score":2,"note":"brief reason"}],"total_weighted_score":86,"max_score":108,"percentage":80,"decision":"GO","rationale":"2-3 sentence summary citing specific RFP details"}`;
+
+function saveKey() {
+  const key = document.getElementById('api-key').value.trim();
+  if (key) {
+    localStorage.setItem('thynk_api_key', key);
+    document.getElementById('key-status').textContent = 'Saved';
+    document.getElementById('key-status').style.color = '#1A7A4A';
+  } else {
+    localStorage.removeItem('thynk_api_key');
+    document.getElementById('key-status').textContent = '';
+  }
+}
+
+function loadKey() {
+  const saved = localStorage.getItem('thynk_api_key');
+  if (saved) {
+    document.getElementById('api-key').value = saved;
+    document.getElementById('key-status').textContent = 'Saved';
+    document.getElementById('key-status').style.color = '#1A7A4A';
+  }
+}
+
+function updateCharCount() {
+  const n = document.getElementById('rfp-text').value.length;
+  document.getElementById('char-count').textContent = n.toLocaleString() + ' chars';
+}
+
+async function gradeRFP() {
+  const apiKey = (document.getElementById('api-key').value.trim()) || localStorage.getItem('thynk_api_key');
+  if (!apiKey || !apiKey.startsWith('sk-ant-')) {
+    alert('Please enter a valid Anthropic API key (starts with sk-ant-) at the top of the page.');
+    document.getElementById('api-key').focus();
+    return;
+  }
+  const text = document.getElementById('rfp-text').value.trim();
+  if (text.length < 50) { alert('Please paste some RFP text first.'); return; }
+  document.getElementById('input-section').style.display = 'none';
+  document.getElementById('api-key-section').style.display = 'none';
+  document.getElementById('loading-card').style.display = 'block';
+  document.getElementById('results').style.display = 'none';
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: PROMPT + '\n\n--- RFP ---\n' + text.substring(0, 12000) }]
+      })
+    });
+    const data = await res.json();
+    const raw = data.content.filter(b => b.type === 'text').map(b => b.text).join('');
+    const result = JSON.parse(raw.replace(/```json|```/g, '').trim());
+    renderResults(result);
+  } catch(e) {
+    document.getElementById('loading-card').style.display = 'none';
+    document.getElementById('api-key-section').style.display = 'block';
+    document.getElementById('input-section').style.display = 'block';
+    alert('Something went wrong. Please check your API key and try again.');
+  }
+}
+
+function renderResults(r) {
+  document.getElementById('loading-card').style.display = 'none';
+  const hasKillerFail = r.killer_criteria.some(k => k.result === 'FAIL');
+  const decision = hasKillerFail ? 'AUTO_NO_GO' : r.decision;
+  const pct = Math.round(r.percentage);
+  const dMap = {
+    GO: { cls: 'verdict-go', label: 'Go' },
+    CONDITIONAL: { cls: 'verdict-conditional', label: 'Conditional go' },
+    NO_GO: { cls: 'verdict-nogo', label: 'No-go' },
+    AUTO_NO_GO: { cls: 'verdict-autongo', label: 'Auto no-go' }
+  };
+  const d = dMap[decision] || dMap.NO_GO;
+  const cats = [
+    { label: 'A — Product-RFP fit', ids: ['A1','A2','A3','A4'], max: 30 },
+    { label: 'B — Market & population', ids: ['B1','B2','B3'], max: 18 },
+    { label: 'C — Funding & commercial', ids: ['C1','C2','C3'], max: 21 },
+    { label: 'D — Competitive position', ids: ['D1','D2'], max: 15 },
+    { label: 'E — Capacity & risk', ids: ['E1','E2','E3','E4'], max: 24 },
+  ];
+  const sm = {};
+  r.scored_criteria.forEach(c => sm[c.id] = c);
+  const catBarsHTML = cats.map(cat => {
+    const earned = cat.ids.reduce((s, id) => s + (sm[id] ? sm[id].score * sm[id].weight : 0), 0);
+    const p = Math.round((earned / cat.max) * 100);
+    const color = p >= 75 ? '#1A7A4A' : p >= 50 ? '#C07800' : '#B03030';
+    return `<div class="bar-row">
+      <span class="bar-label">${cat.label}</span>
+      <div class="bar-track"><div class="bar-fill" style="width:0%;background:${color}" data-w="${p}"></div></div>
+      <span class="bar-val">${earned}/${cat.max}</span>
+    </div>`;
+  }).join('');
+  const killerHTML = r.killer_criteria.map(k => `
+    <div class="criterion-row">
+      <div class="criterion-badge ${k.result === 'PASS' ? 'badge-pass' : 'badge-fail'}">${k.result}</div>
+      <div class="criterion-content">
+        <div class="criterion-name">${k.id} — ${k.label}</div>
+        <div class="criterion-note">${k.note}</div>
+      </div>
+    </div>`).join('');
+  const scoredHTML = r.scored_criteria.map(c => `
+    <div class="criterion-row">
+      <div class="criterion-badge badge-${c.score}">${c.score}/3</div>
+      <div class="criterion-content">
+        <div class="criterion-name">${c.id} — ${c.label} <span class="criterion-weight">x${c.weight}</span></div>
+        <div class="criterion-note">${c.note}</div>
+      </div>
+    </div>`).join('');
+  const autoAlert = hasKillerFail
+    ? `<div class="killer-fail-alert">One or more killer criteria failed — automatic no-go regardless of scored total.</div>` : '';
+  document.getElementById('results').innerHTML = `
+    <div class="verdict-banner ${d.cls}">
+      <div class="verdict-rfp">${r.rfp_name}</div>
+      <div class="verdict-top">
+        <div class="verdict-decision">${d.label}</div>
+        <div class="verdict-pct">${pct}<span>%</span></div>
+      </div>
+      <div class="verdict-rationale">${r.rationale}</div>
+    </div>
+    ${autoAlert}
+    <span class="section-header">Score by category</span>
+    <div class="cat-bars">${catBarsHTML}</div>
+    <button class="collapsible-btn" onclick="toggleSection('killer-body','killer-chev')">
+      <span class="section-header" style="margin:0">Killer criteria</span>
+      <span class="chevron open" id="killer-chev">&#9660;</span>
+    </button>
+    <div class="collapsible-body" id="killer-body" style="max-height:2000px;">
+      <div class="criteria-list" style="margin-top:8px;">${killerHTML}</div>
+    </div>
+    <div class="divider"></div>
+    <button class="collapsible-btn" onclick="toggleSection('scored-body','scored-chev')">
+      <span class="section-header" style="margin:0">Scored criteria</span>
+      <span class="chevron open" id="scored-chev">&#9660;</span>
+    </button>
+    <div class="collapsible-body" id="scored-body" style="max-height:2000px;">
+      <div class="criteria-list" style="margin-top:8px;">${scoredHTML}</div>
+    </div>
+    <div class="actions">
+      <button class="btn-action" onclick="resetToInput()">Grade another RFP</button>
+      <button class="btn-ghost" onclick="window.print()">Print / save PDF</button>
+    </div>`;
+  document.getElementById('results').style.display = 'block';
+  setTimeout(() => {
+    document.querySelectorAll('.bar-fill[data-w]').forEach(el => {
+      el.style.width = el.getAttribute('data-w') + '%';
+    });
+  }, 80);
+}
+
+function toggleSection(bodyId, chevId) {
+  const body = document.getElementById(bodyId);
+  const chev = document.getElementById(chevId);
+  const isOpen = body.style.maxHeight !== '0px';
+  body.style.maxHeight = isOpen ? '0px' : '2000px';
+  chev.classList.toggle('open', !isOpen);
+}
+
+function resetToInput() {
+  document.getElementById('results').style.display = 'none';
+  document.getElementById('results').innerHTML = '';
+  document.getElementById('api-key-section').style.display = 'block';
+  document.getElementById('input-section').style.display = 'block';
+  window.scrollTo(0, 0);
+}
+
+function clearAll() {
+  document.getElementById('rfp-text').value = '';
+  updateCharCount();
+}
+
+loadKey();
+</script>
+</body>
+</html>
